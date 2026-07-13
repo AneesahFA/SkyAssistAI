@@ -1,0 +1,27 @@
+:root {
+	--sky-navy: #0f3b66;
+	--sky-blue: #2f8ed6;
+	--sky-surface: #f6fbff;
+	--sky-text: #163a5d;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+}
+
+body {
+	font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Segoe UI', sans-serif;
+	background: var(--sky-surface);
+	color: var(--sky-text);
+}
+
+button,
+input {
+	font: inherit;
+}

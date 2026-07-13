@@ -1,0 +1,45 @@
+<section class="login-page" aria-labelledby="login-title">
+  <div class="login-card">
+    <header class="brand">
+      <div class="brand-icon" aria-hidden="true">✈</div>
+      <div>
+        <h1 id="login-title">SkyAssist</h1>
+        <p>AI-Powered Airline Knowledge Assistant</p>
+      </div>
+    </header>
+
+    <form (ngSubmit)="submit()" class="login-form" novalidate>
+      <label for="email">Employee Email</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        [(ngModel)]="email"
+        required
+        autocomplete="username"
+        aria-required="true"
+      />
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        [(ngModel)]="password"
+        required
+        autocomplete="current-password"
+        aria-required="true"
+      />
+
+      <p *ngIf="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+
+      <button type="submit">Sign In</button>
+    </form>
+
+    <div class="demo-credentials" aria-label="Demo Credentials">
+      <h2>Demo Credentials</h2>
+      <p><strong>Email:</strong> {{ demoCredentials.email }}</p>
+      <p><strong>Password:</strong> {{ demoCredentials.password }}</p>
+    </div>
+  </div>
+</section>
