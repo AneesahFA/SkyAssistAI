@@ -1,0 +1,33 @@
+<section class="panel-shell">
+  <article class="panel-card">
+    <h2>Policy Documents</h2>
+    <ul>
+      <li *ngFor="let doc of policyDocuments">{{ doc }}</li>
+    </ul>
+  </article>
+
+  <article class="panel-card">
+    <h2>Recent Questions</h2>
+    <ul *ngIf="recentQuestions.length; else noRecent">
+      <li *ngFor="let question of recentQuestions">{{ question }}</li>
+    </ul>
+    <ng-template #noRecent>
+      <p>No questions yet in this session.</p>
+    </ng-template>
+  </article>
+
+  <article class="panel-card status">
+    <h2>Prototype System Status</h2>
+    <p><strong>AI Simulation:</strong> Online</p>
+    <p><strong>Knowledge Retrieval:</strong> Mock Keyword Matching</p>
+    <p><strong>Feedback Summary:</strong> Helpful {{ helpfulCount }} | Not Helpful {{ notHelpfulCount }}</p>
+  </article>
+
+  <article class="panel-card note">
+    <h2>Production Architecture Note</h2>
+    <p>
+      This academic prototype uses in-browser mock data. A production SkyAssist platform would use
+      Azure OpenAI, Azure AI Search, Azure Blob Storage, PostgreSQL, OAuth 2.0, and a Spring Boot REST API.
+    </p>
+  </article>
+</section>

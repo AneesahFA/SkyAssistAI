@@ -1,0 +1,141 @@
+<section class="chat-shell" aria-label="AI Question and Answer Interface">
+  <header class="chat-topbar">
+    <h2>Policy Q&A</h2>
+    <button type="button" class="clear-btn" (click)="clearConversation()">
+      Clear Conversation
+    </button>
+  </header>
+
+  <form class="ask-form" (ngSubmit)="submitQuestion()" novalidate>
+    <label for="questionInput">Ask a policy question</label>
+    <div class="ask-controls">
+      <input
+        id="questionInput"
+        name="questionInput"
+        [(ngModel)]="question"
+        placeholder="Example: Can a customer carry spare lithium batteries in checked baggage?"
+        aria-label="Policy question input"
+        [attr.aria-invalid]="errorMessage ? true : null"
+        (keydown.enter)="onEnterSubmit($event)"
+      />
+      <button type="submit" [disabled]="isLoading" aria-label="Ask Question">
+        {{ isLoading ? 'Generating...' : 'Ask' }}
+      </button>
+    </div>
+    <p *ngIf="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+  </form>
+
+  <div class="chat-stream" aria-live="polite">
+    <p *ngIf="!messages.length && !isLoading" class="empty-state">
+      Start by asking about baggage policies, refunds, upgrades, delays, or travel rules.
+    </p>
+
+    <article
+      *ngFor="let message of messages; trackBy: trackByMessageId"
+      class="message-card"
+      [class.agent]="message.role === 'agent'"
+      [class.assistant]="message.role === 'assistant'"
+    >
+      <header>
+        <span class="role-tag">{{ message.role === 'agent' ? 'Agent' : 'SkyAssist' }}</span>
+        <time [attr.datetime]="message.timestamp">{{ message.timestamp | date: 'shortTime' }}</time>
+      </header>
+
+      <p class="message-text">{{ message.text }}</p>
+
+      <div *ngIf="message.role === 'assistant' && message.response" class="response-meta">
+        <p class="confidence">
+          Confidence: <strong>{{ message.response.confidence | percent: '1.0-0' }}</strong>
+        </p>
+
+        <div class="sources" aria-label="Source Documents">
+          <h3>Sources</h3>
+          <ul>
+            <li *ngFor="let source of message.response.sources">
+              <button
+                type="button"
+                class="source-link"
+                (click)="openSourcePreview(source.name)"
+                [attr.aria-label]="'Open source preview for ' + source.name"
+              >
+                {{ source.name }}
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <p class="disclaimer">{{ message.response.disclaimer }}</p>
+
+        <div class="feedback-row" aria-label="Answer Feedback">
+          <button
+            type="button"
+            (click)="submitFeedback(message, 'helpful')"
+            [disabled]="!!message.feedback"
+            [attr.aria-pressed]="message.feedback === 'helpful'"
+          >
+            Helpful
+          </button>
+          <button
+            type="button"
+            (click)="submitFeedback(message, 'not-helpful')"
+            [disabled]="!!message.feedback"
+            [attr.aria-pressed]="message.feedback === 'not-helpful'"
+          >
+            Not Helpful
+          </button>
+        </div>
+
+        <p *ngIf="confirmationByMessageId[message.id]" class="feedback-confirmation" role="status">
+          {{ confirmationByMessageId[message.id] }}
+        </p>
+      </div>
+    </article>
+
+    <article *ngIf="isLoading" class="message-card assistant loading-card" aria-live="assertive">
+      <header>
+        <span class="role-tag">SkyAssist</span>
+      </header>
+      <p class="message-text">Reviewing policy sources and preparing a simulated answer...</p>
+      <div class="loader" aria-hidden="true"></div>
+    </article>
+  </div>
+
+  <div
+    *ngIf="activeSourcePreview"
+    class="source-modal-backdrop"
+    role="presentation"
+    (click)="closeSourcePreview()"
+  >
+    <section
+      class="source-modal"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'source-preview-title'"
+      (click)="$event.stopPropagation()"
+    >
+      <header>
+        <h3 id="source-preview-title">Source Preview</h3>
+        <button
+          type="button"
+          class="close-modal"
+          (click)="closeSourcePreview()"
+          aria-label="Close source preview"
+        >
+          Close
+        </button>
+      </header>
+
+      <p class="doc-name">{{ activeSourceName }}</p>
+      <p class="doc-summary">{{ activeSourcePreview.summary }}</p>
+
+      <h4>Key Excerpts (Simulated)</h4>
+      <ul>
+        <li *ngFor="let item of activeSourcePreview.highlights">{{ item }}</li>
+      </ul>
+
+      <p class="preview-disclaimer">
+        This preview is mock text for academic demonstration and is not extracted from a real PDF file.
+      </p>
+    </section>
+  </div>
+</section>

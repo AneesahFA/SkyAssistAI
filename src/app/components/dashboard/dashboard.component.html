@@ -1,0 +1,26 @@
+<div class="dashboard-shell">
+  <header class="dashboard-header">
+    <div class="brand-wrap">
+      <div class="brand-icon" aria-hidden="true">☁</div>
+      <div>
+        <h1>SkyAssist</h1>
+        <p>AI-Powered Airline Knowledge Assistant</p>
+      </div>
+    </div>
+
+    <div class="employee-info" aria-label="Employee Session">
+      <span>Signed in: {{ employeeName || 'Agent' }}</span>
+      <button (click)="logout()" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+
+  <main class="workspace-layout">
+    <section class="chat-column" aria-label="Agent Chat Workspace">
+      <app-chat></app-chat>
+    </section>
+
+    <aside class="panel-column" aria-label="Knowledge Panel">
+      <app-knowledge-panel></app-knowledge-panel>
+    </aside>
+  </main>
+</div>
