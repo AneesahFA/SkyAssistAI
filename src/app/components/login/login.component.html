@@ -16,6 +16,7 @@
         type="email"
         [(ngModel)]="email"
         required
+        [attr.maxlength]="emailMaxLength"
         autocomplete="username"
         aria-required="true"
       />
@@ -27,6 +28,7 @@
         type="password"
         [(ngModel)]="password"
         required
+        [attr.maxlength]="passwordMaxLength"
         autocomplete="current-password"
         aria-required="true"
       />

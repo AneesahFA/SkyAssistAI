@@ -1,7 +1,8 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ChatMessage, FeedbackType } from '../../models/chat.models';
 import { ConversationService } from '../../services/conversation.service';
+import { InputSecurityService } from '../../services/input-security.service';
 import { MockAiService } from '../../services/mock-ai.service';
 
 interface SourcePreview {
@@ -16,6 +17,11 @@ interface SourcePreview {
   styleUrls: ['./chat.component.scss']
 })
 export class ChatComponent implements OnInit, OnDestroy {
+  @ViewChild('chatStream') chatStreamRef?: ElementRef<HTMLDivElement>;
+
+  readonly questionMaxLength = 400;
+  readonly minQuestionLength = 3;
+
   question = '';
   isLoading = false;
   errorMessage = '';
@@ -116,6 +122,26 @@ export class ChatComponent implements OnInit, OnDestroy {
         'Pre-travel verification is required to avoid denied boarding.'
       ]
     },
+    'Airport Operations Bulletin.pdf': {
+      title: 'Airport Operations Bulletin.pdf',
+      summary:
+        'Provides airport-side operating guidance for gate changes, check-in cutoffs, and boarding flow.',
+      highlights: [
+        'Gate assignments may change due to operational constraints.',
+        'Passengers should monitor display boards and airline notifications.',
+        'Check-in and boarding cutoff deadlines are strictly enforced.'
+      ]
+    },
+    'Passenger Rights Handbook.pdf': {
+      title: 'Passenger Rights Handbook.pdf',
+      summary:
+        'Outlines customer rights and compensation pathways across common disruption scenarios.',
+      highlights: [
+        'Eligibility depends on jurisdiction and disruption cause.',
+        'Denied boarding and qualifying delays may trigger compensation rights.',
+        'Accessibility rights and complaint channels should be clearly communicated.'
+      ]
+    },
     'Supervisor Escalation SOP.pdf': {
       title: 'Supervisor Escalation SOP.pdf',
       summary:
@@ -132,13 +158,15 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly mockAiService: MockAiService,
-    private readonly conversationService: ConversationService
+    private readonly conversationService: ConversationService,
+    private readonly inputSecurityService: InputSecurityService
   ) {}
 
   ngOnInit(): void {
     this.subscription.add(
       this.conversationService.messages$.subscribe((messages) => {
         this.messages = messages;
+        this.scrollToLatest();
       })
     );
   }
@@ -149,14 +177,25 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   submitQuestion(): void {
     this.errorMessage = '';
-    const trimmedQuestion = this.question.trim();
+    const sanitizedQuestion = this.inputSecurityService.sanitizePlainText(
+      this.question,
+      this.questionMaxLength
+    );
+    const trimmedQuestion = sanitizedQuestion.trim();
+    this.question = sanitizedQuestion;
 
-    if (!trimmedQuestion) {
+    if (!this.inputSecurityService.isNotBlank(trimmedQuestion)) {
       this.errorMessage = 'Please enter a question before submitting.';
       return;
     }
 
+    if (trimmedQuestion.length < this.minQuestionLength) {
+      this.errorMessage = 'Please provide a little more detail so I can match a policy.';
+      return;
+    }
+
     this.isLoading = true;
+    this.scrollToLatest();
 
     // In production, this call would be replaced by a backend API (Spring Boot) orchestrating Azure OpenAI.
     this.subscription.add(
@@ -165,11 +204,13 @@ export class ChatComponent implements OnInit, OnDestroy {
           this.conversationService.addQuestionAndAnswer(trimmedQuestion, response);
           this.question = '';
           this.isLoading = false;
+          this.scrollToLatest();
         },
         error: () => {
           this.errorMessage =
             'The simulated assistant is temporarily unavailable. Please try again.';
           this.isLoading = false;
+          this.scrollToLatest();
         }
       })
     );
@@ -187,13 +228,19 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.confirmationByMessageId = {};
     this.errorMessage = '';
     this.closeSourcePreview();
+    this.scrollToLatest();
+  }
+
+  get displayedMessages(): ChatMessage[] {
+    return [...this.messages].reverse();
   }
 
   openSourcePreview(sourceName: string): void {
-    this.activeSourceName = sourceName;
+    const sanitizedSourceName = this.inputSecurityService.sanitizePlainText(sourceName, 120);
+    this.activeSourceName = sanitizedSourceName;
     this.activeSourcePreview =
-      this.sourcePreviews[sourceName] || {
-        title: sourceName,
+      this.sourcePreviews[sanitizedSourceName] || {
+        title: sanitizedSourceName,
         summary:
           'No preview snippet is configured for this document in the academic prototype.',
         highlights: ['Add a preview snippet map entry to enrich this source.']
@@ -231,5 +278,17 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   trackByMessageId(index: number, message: ChatMessage): string {
     return message.id;
+  }
+
+  private scrollToLatest(): void {
+    // Delay slightly so Angular can render the newest message card before measuring height.
+    setTimeout(() => {
+      const container = this.chatStreamRef?.nativeElement;
+      if (!container) {
+        return;
+      }
+
+      container.scrollTop = 0;
+    }, 0);
   }
 }

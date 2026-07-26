@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AiResponse, ChatMessage, FeedbackType } from '../models/chat.models';
+import { SafeStorageService } from './safe-storage.service';
 
 interface FeedbackCounts {
   helpful: number;
@@ -13,6 +14,8 @@ interface FeedbackCounts {
 export class ConversationService {
   private readonly messagesKey = 'skyassist.messages';
   private readonly feedbackCountsKey = 'skyassist.feedback-counts';
+
+  constructor(private readonly safeStorageService: SafeStorageService) {}
 
   private readonly messagesSubject = new BehaviorSubject<ChatMessage[]>(
     this.readMessagesFromStorage()
@@ -54,7 +57,8 @@ export class ConversationService {
 
   clearConversation(): void {
     this.messagesSubject.next([]);
-    sessionStorage.removeItem(this.messagesKey);
+    this.safeStorageService.removeItem(this.messagesKey, 'session');
+    this.safeStorageService.removeItem(this.messagesKey, 'local');
   }
 
   submitFeedback(messageId: string, feedback: FeedbackType): boolean {
@@ -83,7 +87,16 @@ export class ConversationService {
     };
 
     this.feedbackCountsSubject.next(updatedCounts);
-    sessionStorage.setItem(this.feedbackCountsKey, JSON.stringify(updatedCounts));
+    const serializedCounts = JSON.stringify(updatedCounts);
+    const savedInSession = this.safeStorageService.setItem(
+      this.feedbackCountsKey,
+      serializedCounts,
+      'session'
+    );
+
+    if (!savedInSession) {
+      this.safeStorageService.setItem(this.feedbackCountsKey, serializedCounts, 'local');
+    }
 
     return true;
   }
@@ -101,7 +114,7 @@ export class ConversationService {
   }
 
   private readMessagesFromStorage(): ChatMessage[] {
-    const raw = sessionStorage.getItem(this.messagesKey);
+    const raw = this.readWithFallback(this.messagesKey);
     if (!raw) {
       return [];
     }
@@ -115,11 +128,15 @@ export class ConversationService {
   }
 
   private persistMessages(messages: ChatMessage[]): void {
-    sessionStorage.setItem(this.messagesKey, JSON.stringify(messages));
+    const serialized = JSON.stringify(messages);
+    const savedInSession = this.safeStorageService.setItem(this.messagesKey, serialized, 'session');
+    if (!savedInSession) {
+      this.safeStorageService.setItem(this.messagesKey, serialized, 'local');
+    }
   }
 
   private readFeedbackCountsFromStorage(): FeedbackCounts {
-    const raw = sessionStorage.getItem(this.feedbackCountsKey);
+    const raw = this.readWithFallback(this.feedbackCountsKey);
     if (!raw) {
       return { helpful: 0, notHelpful: 0 };
     }
@@ -133,5 +150,14 @@ export class ConversationService {
     } catch {
       return { helpful: 0, notHelpful: 0 };
     }
+  }
+
+  private readWithFallback(key: string): string | null {
+    const sessionValue = this.safeStorageService.getItem(key, 'session');
+    if (sessionValue) {
+      return sessionValue;
+    }
+
+    return this.safeStorageService.getItem(key, 'local');
   }
 }

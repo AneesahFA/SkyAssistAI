@@ -13,8 +13,10 @@
         id="questionInput"
         name="questionInput"
         [(ngModel)]="question"
+        [attr.maxlength]="questionMaxLength"
         placeholder="Example: Can a customer carry spare lithium batteries in checked baggage?"
         aria-label="Policy question input"
+        autocomplete="off"
         [attr.aria-invalid]="errorMessage ? true : null"
         (keydown.enter)="onEnterSubmit($event)"
       />
@@ -25,13 +27,21 @@
     <p *ngIf="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
   </form>
 
-  <div class="chat-stream" aria-live="polite">
+  <div #chatStream class="chat-stream" aria-live="polite">
+    <article *ngIf="isLoading" class="message-card assistant loading-card" aria-live="assertive">
+      <header>
+        <span class="role-tag">SkyAssist</span>
+      </header>
+      <p class="message-text">Reviewing policy sources and preparing a simulated answer...</p>
+      <div class="loader" aria-hidden="true"></div>
+    </article>
+
     <p *ngIf="!messages.length && !isLoading" class="empty-state">
       Start by asking about baggage policies, refunds, upgrades, delays, or travel rules.
     </p>
 
     <article
-      *ngFor="let message of messages; trackBy: trackByMessageId"
+      *ngFor="let message of displayedMessages; trackBy: trackByMessageId"
       class="message-card"
       [class.agent]="message.role === 'agent'"
       [class.assistant]="message.role === 'assistant'"
@@ -89,14 +99,6 @@
           {{ confirmationByMessageId[message.id] }}
         </p>
       </div>
-    </article>
-
-    <article *ngIf="isLoading" class="message-card assistant loading-card" aria-live="assertive">
-      <header>
-        <span class="role-tag">SkyAssist</span>
-      </header>
-      <p class="message-text">Reviewing policy sources and preparing a simulated answer...</p>
-      <div class="loader" aria-hidden="true"></div>
     </article>
   </div>
 
